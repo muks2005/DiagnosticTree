@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Disease Prediction</title>
+
+  <!-- Anime.js for animation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+
+  <!-- Chart.js for interactive charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      --bg-color: #ffffff;
+      --text-color: #2c3e50;
+      --card-bg: #916666;
+      --input-bg: #c0b4c2;
+      --btn-bg: #3498db;
+      --btn-hover: #2980b9;
+      --result-good: #2ecc71;
+      --result-bad: #e74c3c;
+    }
+
+    body.dark {
+      --bg-color: #1e1e1e;
+      --text-color: #ecf0f1;
+      --card-bg: #2c2c2c;
+      --input-bg: #3c3c3c;
+      --btn-bg: #8e44ad;
+      --btn-hover: #732d91;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      margin: 0;
+      padding: 40px 20px;
+      text-align: center;
+      transition: background-color 0.3s, color 0.3s;
+    }
+
+    h2 {
+      font-size: 2.5em;
+      margin-bottom: 10px;
+    }
+
+    .toggle-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      padding: 10px 5px;
+      background-color: var(--btn-bg);
+      color: rgb(220, 199, 199);
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .accuracy {
+      font-size: 1.2em;
+      margin-bottom: 30px;
+      color: var(--result-good);
+    }
+
+    form {
+      background-color: var(--card-bg);
+      padding: 25px;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      max-width: 500px;
+      margin: 0 auto;
+      opacity: 0;
+      transform: translateY(40px);
+      transition: background-color 0.3s;
+    }
+
+    label {
+      display: block;
+      margin-top: 15px;
+      font-weight: bold;
+      text-align: left;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 6px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      background-color: var(--input-bg);
+      color: var(--text-color);
+      transition: all 0.3s;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--btn-bg);
+      box-shadow: 0 0 5px rgba(52, 152, 219, 0.4);
+    }
+
+    button {
+      margin-top: 20px;
+      width: 100%;
+      padding: 12px;
+      background-color: var(--btn-bg);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: var(--btn-hover);
+    }
+
+    .result {
+      margin-top: 20px;
+      font-weight: bold;
+      font-size: 1.3em;
+      min-height: 20px;
+    }
+
+    .image-container {
+      margin-top: 50px;
+    }
+
+    .image-container img {
+      max-width: 90%;
+      margin-top: 20px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    canvas {
+      margin-top: 40px;
+      max-width: 600px;
+    }
+  </style>
+</head>
+<body>
+  <button class="toggle-btn" onclick="toggleDarkMode()">🌙 Toggle Mode</button>
+
+  <h2>Disease Prediction</h2>
+  <p class="accuracy"><strong>Model Accuracy:</strong> {{ accuracy }}%</p>
+
+  <form id="predictionForm">
+    <label>Pregnancies:</label><input type="number" name="Pregnancies" required>
+    <label>Glucose:</label><input type="number" name="Glucose" required>
+    <label>Blood Pressure:</label><input type="number" name="BloodPressure" required>
+    <label>Skin Thickness:</label><input type="number" name="SkinThickness" required>
+    <label>Insulin:</label><input type="number" name="Insulin" required>
+    <label>BMI:</label><input type="number" step="0.1" name="BMI" required>
+    <label>Diabetes Pedigree Function:</label><input type="number" step="0.01" name="DiabetesPedigreeFunction" required>
+    <label>Age:</label><input type="number" name="Age" required>
+    <button type="button" onclick="predict()">Predict</button>
+  </form>
+
+  <div class="result" id="result"></div>
+
+  <div class="image-container">
+    <h3>Correlation Heatmap</h3>
+    <img src="/static/heatmap.png" alt="Heatmap">
+    <h3>Confusion Matrix</h3>
+    <img src="/static/confusion_matrix.png" alt="Confusion Matrix">
+  </div>
+
+  <canvas id="chart" width="600" height="400"></canvas>
+
+  <script>
+    // Animate form entry
+    anime({
+      targets: 'form',
+      opacity: [0, 1],
+      translateY: [40, 0],
+      easing: 'easeOutExpo',
+      duration: 1000,
+      delay: 200
+    });
+
+    // Dark mode toggle
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark');
+    }
+
+    // Prediction
+    async function predict() {
+      const formData = new FormData(document.getElementById("predictionForm"));
+      const data = Object.fromEntries(formData.entries());
+
+      try {
+        const response = await fetch("/predict", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(data),
+        });
+
+        const result = await response.json();
+        const output = document.getElementById("result");
+        output.innerText = result.prediction;
+
+        output.style.color = result.prediction.includes("No Disease")
+          ? "var(--result-good)"
+          : "var(--result-bad)";
+
+        // Update chart
+        updateChart(data);
+
+      } catch (error) {
+        const output = document.getElementById("result");
+        output.innerText = "An error occurred. Please try again.";
+        output.style.color = "red";
+      }
+    }
+
+    // Chart visualization
+    const ctx = document.getElementById('chart').getContext('2d');
+    let chart = new Chart(ctx, {
+      type: 'radar',
+      data: {
+        labels: ["Pregnancies", "Glucose", "Blood Pressure", "Skin Thickness", "Insulin", "BMI", "DPF", "Age"],
+        datasets: [{
+          label: "Your Input",
+          data: [],
+          backgroundColor: "rgba(52, 152, 219, 0.2)",
+          borderColor: "#3498db",
+          borderWidth: 2,
+          pointBackgroundColor: "#2980b9"
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          r: {
+            suggestedMin: 0,
+            suggestedMax: 200,
+            ticks: {
+              color: getComputedStyle(document.body).getPropertyValue('--text-color')
+            },
+            pointLabels: {
+              color: getComputedStyle(document.body).getPropertyValue('--text-color')
+            }
+          }
+        }
+      }
+    });
+
+    function updateChart(data) {
+      const values = [
+        parseFloat(data.Pregnancies),
+        parseFloat(data.Glucose),
+        parseFloat(data.BloodPressure),
+        parseFloat(data.SkinThickness),
+        parseFloat(data.Insulin),
+        parseFloat(data.BMI),
+        parseFloat(data.DiabetesPedigreeFunction),
+        parseFloat(data.Age)
+      ];
+      chart.data.datasets[0].data = values;
+      chart.update();
+    }
+  </script>
+</body>
+</html>
