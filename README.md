@@ -5,7 +5,7 @@ Let's write you a complete, professional `README.md` based on everything you've 
 
 # DiagnosticTree – Disease Prediction Using Decision Tree
 
-![App Screenshot](./static/screenshot.png)
+![App Screenshot]([./static/screenshot.png](https://github.com/muks2005/DiagnosticTree/blob/75db29ae9b5dc622ed3493e9dafef18a083c7c93/Screenshot%202025-04-26%20032141.png))
 
 ## Overview
 
