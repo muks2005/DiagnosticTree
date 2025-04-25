@@ -4,11 +4,6 @@ Let's write you a complete, professional `README.md` based on everything you've 
 ---
 
 # DiagnosticTree – Disease Prediction Using Decision Tree
-
-![App Screenshot](./static/screenshot.png)
-
-
-
 ## Overview
 
 **DiagnosticTree** is a machine learning project that implements a **custom Decision Tree Classifier** to predict the presence of a disease based on patient data. The model is integrated into a clean and interactive web application that allows users to input clinical parameters and receive real-time predictions.
